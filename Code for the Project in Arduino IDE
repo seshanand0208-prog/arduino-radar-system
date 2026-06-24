@@ -1,0 +1,118 @@
+// RADAR System with LCD Display - Fast Servo Sweep
+
+#include <Servo.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// LCD Address
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Ultrasonic Sensor Pins
+const int trigPin = 10;
+const int echoPin = 11;
+
+// Servo
+Servo myServo;
+
+// Variables
+long duration;
+int distance;
+
+void setup()
+{
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  Serial.begin(9600);
+
+  myServo.attach(12);
+
+  // LCD Start
+  lcd.init();
+  lcd.backlight();
+
+  lcd.setCursor(0, 0);
+  lcd.print("RADAR SYSTEM");
+  lcd.setCursor(0, 1);
+  lcd.print("Starting...");
+  delay(2000);
+
+  lcd.clear();
+}
+
+void loop()
+{
+  // Sweep 0° to 180°
+  for (int i = 0; i <= 180; i++)
+  {
+    myServo.write(i);
+    delay(5); // Fast movement
+
+    distance = calculateDistance();
+
+    displayStatus(distance);
+
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(distance);
+    Serial.print(".");
+  }
+
+  // Sweep 180° to 0°
+  for (int i = 180; i >= 0; i--)
+  {
+    myServo.write(i);
+    delay(5); // Fast movement
+
+    distance = calculateDistance();
+
+    displayStatus(distance);
+
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(distance);
+    Serial.print(".");
+  }
+}
+
+// Function to Calculate Distance
+int calculateDistance()
+{
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH, 30000);
+
+  if (duration == 0)
+    return 400; // No object detected
+
+  distance = duration * 0.034 / 2;
+
+  return distance;
+}
+
+// LCD Display Function
+void displayStatus(int distance)
+{
+  lcd.setCursor(0, 0);
+  lcd.print("Dist:      ");
+  lcd.setCursor(6, 0);
+  lcd.print(distance);
+  lcd.print("cm");
+
+  lcd.setCursor(0, 1);
+
+  if (distance <= 20)
+  {
+    lcd.print("DANGER! OBJECT ");
+  }
+  else
+  {
+    lcd.print("AREA FREE      ");
+  }
+}
